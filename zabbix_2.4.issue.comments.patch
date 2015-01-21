@@ -1,0 +1,80 @@
+--- /include/blocks.inc.php	2014-11-05 09:01:43.000000000 +0100
++++ /include/blocks.inc.php	2014-12-02 10:11:53.757124499 +0100
+@@ -1087,7 +1087,7 @@ function make_latest_issues(array $filte
+ 		$description = new CCol($description, getSeverityStyle($trigger['priority']));
+ 		if ($trigger['lastEvent']) {
+ 			$description->setHint(
+-				make_popup_eventlist($trigger['triggerid'], $trigger['lastEvent']['eventid']), '', false
++				make_popup_eventlist($trigger['triggerid'], $trigger['lastEvent']['eventid']), '', true
+ 			);
+ 		}
+ 
+--- /include/events.inc.php	2014-11-05 09:01:43.000000000 +0100
++++ /include/events.inc.php	2014-12-02 10:11:36.797125326 +0100
+@@ -264,15 +264,40 @@ function make_small_eventlist($startEven
+ function make_popup_eventlist($triggerId, $eventId) {
+ 	$config = select_config();
+ 
+-	$table = new CTableInfo();
+-	$table->setAttribute('style', 'width: 400px;');
++        $commentTable = new CTableInfo();
++        $commentTable->setAttribute('style', 'width: 400px;');
++        $commentHeader = new CCol(array(_('Comment')));
++        $commentHeader->setAttribute('style','width: 350px;');
++        $editHeader = new CCol(array(_('')));
++        $commentTable->setHeader(array($commentHeader,$editHeader));
++
++        $options = array(
++        'triggerids' => $triggerId,
++        'output' => API_OUTPUT_EXTEND
++       );
++
++        $triggers = API::Trigger()->get($options);
++        $trigger = $triggers[0];
++
++        $editLinkCol = new CCol(array(new CLink(zbx_empty($trigger['comments']) ? _('Add') : _('Edit'), 'tr_comments.php?triggerid='.$trigger['triggerid'])));
++        $editLinkCol->setAttribute('style','text-align: center;');
++
++        $commentSpan = new CSpan(CMacrosResolverHelper::resolveTriggerDescription($trigger),'comments');
++        $commentSpan->setAttribute('style','white-space: normal');
++        $commentCol = new CCol(array($commentSpan));
++
++        $commentTable->addRow(array($commentCol,$editLinkCol));
++
++        $eventTable = new CTableInfo();
++        $eventTable->setAttribute('style', 'width: 400px;');
++        $eventTable->setHeader(array(_('Time'), _('Status'), _('Duration'), _('Age')));
+ 
+ 	// if acknowledges are turned on, we show 'ack' column
+ 	if ($config['event_ack_enable']) {
+-		$table->setHeader(array(_('Time'), _('Status'), _('Duration'), _('Age'), _('Ack')));
++		$eventTable->setHeader(array(_('Time'), _('Status'), _('Duration'), _('Age'), _('Ack')));
+ 	}
+ 	else {
+-		$table->setHeader(array(_('Time'), _('Status'), _('Duration'), _('Age')));
++		$eventTable->setHeader(array(_('Time'), _('Status'), _('Duration'), _('Age')));
+ 	}
+ 
+ 	$events = API::Event()->get(array(
+@@ -298,7 +323,7 @@ function make_popup_eventlist($triggerId
+ 		// add colors and blinking to span depending on configuration and trigger parameters
+ 		addTriggerValueStyle($eventStatusSpan, $event['value'], $event['clock'], $event['acknowledged']);
+ 
+-		$table->addRow(array(
++		$eventTable->addRow(array(
+ 			zbx_date2str(DATE_TIME_FORMAT_SECONDS, $event['clock']),
+ 			$eventStatusSpan,
+ 			$duration,
+@@ -307,7 +332,11 @@ function make_popup_eventlist($triggerId
+ 		));
+ 	}
+ 
+-	return $table;
++	$div = new CDiv(null, 'triggerHint');	
++	$div->AddItem($commentTable);
++	$div->AddItem(SPACE);
++	$div->AddItem($eventTable);
++	return $div;
+ }
+ 
+ /**
