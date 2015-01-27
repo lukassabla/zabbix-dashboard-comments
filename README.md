@@ -9,3 +9,6 @@ In our company (and certainly not only in ours) several operation admins change 
 cd /zabbix/web/directry
 patch -p1  < /path/to/zabbix_2.4.issue.comments.patch
 ```
+
+### illustration
+![Before and after patch](http://up1.deploy.sk/zbx_comments_github.png)
